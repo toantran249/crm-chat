@@ -2,51 +2,51 @@ version: '3.3'
 
 services:
   base: &base
-    image: toantran249/chatorg:latest
+    image: toantran249/chat-org:latest
     env_file: .env
     volumes:
       - /data/storage:/app/storage
 
   rails:
     <<: *base
-    image: chatorg:latest
+    image: toantran249/chat-org:latest
     depends_on:
       # - postgres
       - redis
-    ports:
-      - 3000:3000
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    # ports:
+    #   - 3000:3000
+    # extra_hosts:
+    #   - "host.docker.internal:host-gateway"
     environment:
       - NODE_ENV=production
       - RAILS_ENV=production
       - POSTGRES_HOST=13.229.64.91
       - POSTGRES_USERNAME=chatwoot
       - POSTGRES_PASSWORD=W1V4HOnvYBgytXO
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://localhost:6379
       - RACK_TIMEOUT_SERVICE_TIMEOUT=0
     entrypoint: docker/entrypoints/rails.sh
-    networks:
-      - api-net-prod
-    # network_mode: host
+    # networks:
+    #   - api-net-prod
+    network_mode: host
     command: ['bundle', 'exec', 'rails', 's', '-p', '3000', '-b', '0.0.0.0']
 
   sidekiq:
     <<: *base
-    image: chatorg:latest
+    image: toantran249/chat-org:latest
     depends_on:
       # - postgres
       - redis
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    # extra_hosts:
+    #   - "host.docker.internal:host-gateway"
     environment:
       - NODE_ENV=production
       - RAILS_ENV=production
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://localhost:6379
       - RACK_TIMEOUT_SERVICE_TIMEOUT=0
-    networks:
-      - api-net-prod
-    # network_mode: host
+    # networks:
+    #   - api-net-prod
+    network_mode: host
     command: ['bundle', 'exec', 'sidekiq', '-C', 'config/sidekiq.yml']
 
   # postgres:
@@ -67,19 +67,20 @@ services:
     volumes:
       - /data/redis:/data
     env_file: .env
-    networks:
-      - api-net-prod
+    network_mode: host
+    # networks:
+    #   - api-net-prod
     # ports:
     #   - '6379:6379'
 
-networks:
-  api-net-prod:
-    driver: bridge
-    ipam:
-      driver: default
-      config:
-        - subnet: 172.100.0.0/16
-          gateway: 172.100.0.1
+# networks:
+#   api-net-prod:
+#     driver: bridge
+#     ipam:
+#       driver: default
+#       config:
+#         - subnet: 172.100.0.0/16
+#           gateway: 172.100.0.1
 
 # volumes:
 #   # postgres:
