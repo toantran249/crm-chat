@@ -362,8 +362,8 @@ function setup_chatwoot() {
   sed -i -e '/POSTGRES_USERNAME/ s/=.*/=chatwoot/' docker-compose.yml
   sed -i -e "/POSTGRES_PASSWORD/ s/=.*/=$pg_pass/" docker-compose.yml
 
-  docker-compose -f docker-compose.test.yaml up -d sidekiq
-  docker-compose -f docker-compose.test.yaml up -d rails
+  docker-compose -f docker-compose.yml up -d sidekiq
+  docker-compose -f docker-compose.yml up -d rails
   
   docker logout $REGISTRY_URL
 EOF
