@@ -376,7 +376,6 @@ function setup_chatwoot() {
 ##############################################################################
 function run_db_migrations(){
   docker compose run --rm rails bundle exec rails db:chatwoot_prepare
-EOF
 }
 
 ##############################################################################
