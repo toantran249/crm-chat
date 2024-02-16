@@ -354,19 +354,15 @@ function setup_chatwoot() {
   local PASSWORD="1jahdi@#jdskljk33A"
   get_pgpass
 
-  docker login $REGISTRY_URL -u $USERNAME -p $PASSWORD
-  
-  # replace evn in docker-compose.yml
-
   sed -i -e '/POSTGRES_HOST/ s/=.*/=localhost/' docker-compose.yml
   sed -i -e '/POSTGRES_USERNAME/ s/=.*/=chatwoot/' docker-compose.yml
   sed -i -e "/POSTGRES_PASSWORD/ s/=.*/=$pg_pass/" docker-compose.yml
 
-  docker-compose -f docker-compose.yml up -d sidekiq
-  docker-compose -f docker-compose.yml up -d rails
-  
+  docker login $REGISTRY_URL -u $USERNAME -p $PASSWORD
+  docker pull toantran249/chat-org:latest
   docker logout $REGISTRY_URL
-EOF
+  docker compose -f docker-compose.yml up -d sidekiq
+  docker compose -f docker-compose.yml up -d rails
 }
 
 ##############################################################################
