@@ -382,6 +382,9 @@ function setup_chatorg() {
   docker pull toantran249/crm-be-org:latest
   docker pull toantran249/crm-fe-org:latest
   docker logout $REGISTRY_URL
+
+  docker compose -f docker-compose.yml run --rm crm-be /bin/bash -c "go run main.go -db true"
+
   docker compose -f docker-compose.yml up -d sidekiq
   docker compose -f docker-compose.yml up -d rails
   docker compose -f docker-compose.yml up -d crm-be
@@ -399,7 +402,6 @@ function setup_chatorg() {
 ##############################################################################
 function run_db_migrations(){
   docker compose run --rm rails bundle exec rails db:chatwoot_prepare
-  docker compose run --rm crm-be /bin/bash -c "./crm-chat-pdt-backend -db true"
 }
 
 ##############################################################################
@@ -558,16 +560,15 @@ EOF
     echo "➥ 5/9 Skipping database setup."
   fi
 
-  if [ "$install_pg_redis" != "no" ]; then
-    echo "➥ 6/9 Running database migrations."
-    run_db_migrations &>> "${LOG_FILE}"
-  else
-    echo "➥ 6/9 Skipping database migrations."
-  fi
-
-  echo "➥ 7/9 Installing ChatORG. This takes a long while."
+  echo "➥ 6/9 Installing ChatORG. This takes a long while."
   setup_chatorg &>> "${LOG_FILE}"
 
+  if [ "$install_pg_redis" != "no" ]; then
+    echo "➥ 7/9 Running database migrations."
+    run_db_migrations &>> "${LOG_FILE}"
+  else
+    echo "➥ 7/9 Skipping database migrations."
+  fi
 
   echo "➥ 8/9 Setting up systemd services."
   # configure_systemd_services &>> "${LOG_FILE}"
