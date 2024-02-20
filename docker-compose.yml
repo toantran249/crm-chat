@@ -21,15 +21,89 @@ services:
       - NODE_ENV=production
       - RAILS_ENV=production
       - POSTGRES_HOST=13.229.64.91
-      - POSTGRES_USERNAME=chatwoot
+      - POSTGRES_DATABASE=chat_production
+      - POSTGRES_USERNAME=chatorg
       - POSTGRES_PASSWORD=W1V4HOnvYBgytXO
       - REDIS_URL=redis://localhost:6379
       - RACK_TIMEOUT_SERVICE_TIMEOUT=0
+      - FRONTEND_URL=localhost
     entrypoint: docker/entrypoints/rails.sh
     # networks:
     #   - api-net-prod
     network_mode: host
-    command: ['bundle', 'exec', 'rails', 's', '-p', '3000', '-b', '0.0.0.0']
+    command:
+      [
+        'bundle',
+        'exec',
+        'rails',
+        's',
+        '-p',
+        '3000',
+        '-b',
+        '0.0.0.0'
+      ]
+
+  crm-be-base: &crm-be-base
+    image: toantran249/crm-be-org:latest
+    env_file: .env
+    volumes:
+      - /data/crm_chat_org_storage:/usr/local/bin/crm_chat_org_storage
+
+  crm-be:
+    <<: *crm-be-base
+    image: toantran249/crm-be-org:latest
+    depends_on:
+      - redis
+    environment:
+      - NODE_ENV=production
+
+      - DB_HOST=crm-chat-dev.piditi.com
+      - DB_PORT=5432
+      - DB_USER=crm_chat_piditi_db_user
+      - DB_PASSWORD='23#@dD43Dwfss'
+      - DB_NAME=crm_chat_piditi_db_dev
+
+      - DB_CHAT_HOST=13.229.64.91
+      - DB_CHAT_PORT=5432
+      - DB_CHAT_USER=chatwoot
+      - DB_CHAT_PASSWORD='W1V4HOnvYBgytXO'
+      - DB_CHAT_NAME=chatwoot_production
+
+      - REDIS_URL=localhost:6379
+    network_mode: host
+    command: [ "./crm-chat-pdt-backend" ]
+
+  crm-fe-base: &crm-fe-base
+    image: toantran249/crm-fe-org:latest
+    env_file: .env
+
+  crm-fe:
+    <<: *crm-fe-base
+    image: toantran249/crm-fe-org:latest
+    ports:
+      - '8888:80'
+    environment:
+      - VITE_NODE_ENV=production
+      - VITE_APP_VERSION=crm/api/v1
+      - VITE_APP_URL=https://crm-chat-dev.piditi.com
+      - VITE_APP_CHAT_URL=https://chat.piditi.com
+      - VITE_PUBLIC_KEY=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA9lustteMn4Kfq96tu2YQcWEKBrTXIAjPNBjNZmXaIJpHxdtHFrofWCx8yo2to78g5iC6WULnNEyOYpXjRJq/PxeD8nMqFV0G43o/hv7srbAREybQSdimmQDqRi+joGhByZhE/Mq+DN2VcMGqv82MFtQbGAEFI5Sf+2WP2rnnTZOtIr5JocDpzxgdirRfx7qxBW7Eqo0Rh6jDaT4dGy3EwgBB31mQD91FFY4gsz6KmVMqPgJDFzs5U3H+RYTI3C3S3cWfdlX0yYtHm6dbmgY+/r0hfxyToz8fAvzi1fl/hI3wxCtNqxWxJv1nlK0vub+F0AXCRuxeLu6AYyMOnRO5awIDAQAB
+      - VITE_DOCUMENTATION_URL=https://docs.google.com/document/d/1qo3eqCP7Z3OR-FAa6RI4pDSLZ7bSN29t2SKunjGQ7yA/
+
+      - VITE_FACEBOOK_GRAPH_URL=https://graph.facebook.com
+      - VITE_FACEBOOK_APP_ID=250208720811960
+      - VITE_FACEBOOK_APP_SECRET=f924ef7ac48fa73ba632a7016deea12d
+
+      - VITE_ZALO_AUTH_URL=https://oauth.zaloapp.com
+      - VITE_ZALO_OPEN_URL=https://openapi.zalo.me/
+      - VITE_ZALO_APP_ID=4283812103742784598
+      - VITE_ZALO_APP_SECRET=MOVs37ha7G9u5FFksBJ2
+
+      - VITE_CHAT_WEBSOCKET_URL=wss://chat.piditi.com
+
+      - VITE_VAPID_PUBLIC_KEY=BAVz2bLdWvktKCbDAQ_hNvn-AWnbG6odfC2nVfscdJOc-P4RKFSMNz50_2GETPLMot75DGa5FszHVGCmK3QyLRU
+    # network_mode: host
+    command: [ 'nginx', '-g', 'daemon off;' ]
 
   sidekiq:
     <<: *base
@@ -47,7 +121,14 @@ services:
     # networks:
     #   - api-net-prod
     network_mode: host
-    command: ['bundle', 'exec', 'sidekiq', '-C', 'config/sidekiq.yml']
+    command:
+      [
+        'bundle',
+        'exec',
+        'sidekiq',
+        '-C',
+        'config/sidekiq.yml'
+      ]
 
   # postgres:
   #   image: postgres:12
@@ -73,18 +154,18 @@ services:
     # ports:
     #   - '6379:6379'
 
-# networks:
-#   api-net-prod:
-#     driver: bridge
-#     ipam:
-#       driver: default
-#       config:
-#         - subnet: 172.100.0.0/16
-#           gateway: 172.100.0.1
+    # networks:
+    #   api-net-prod:
+    #     driver: bridge
+    #     ipam:
+    #       driver: default
+    #       config:
+    #         - subnet: 172.100.0.0/16
+    #           gateway: 172.100.0.1
 
-# volumes:
-#   # postgres:
-#   redis:
-#   bundle:
-#   packs:
-#   node_modules_rails:
+    # volumes:
+    #   # postgres:
+    #   redis:
+    #   bundle:
+    #   packs:
+    #   node_modules_rails:
