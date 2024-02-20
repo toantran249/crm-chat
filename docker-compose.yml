@@ -20,13 +20,13 @@ services:
     environment:
       - NODE_ENV=production
       - RAILS_ENV=production
-      - POSTGRES_HOST=13.229.64.91
+      - POSTGRES_HOST=localhost
       - POSTGRES_DATABASE=chat_production
       - POSTGRES_USERNAME=chatorg
-      - POSTGRES_PASSWORD=W1V4HOnvYBgytXO
+      - POSTGRES_PASSWORD=
       - REDIS_URL=redis://localhost:6379
       - RACK_TIMEOUT_SERVICE_TIMEOUT=0
-      - FRONTEND_URL=localhost
+      - FRONTEND_URL=https://
     entrypoint: docker/entrypoints/rails.sh
     # networks:
     #   - api-net-prod
@@ -68,6 +68,8 @@ services:
       - DB_CHAT_USER=chatwoot
       - DB_CHAT_PASSWORD='W1V4HOnvYBgytXO'
       - DB_CHAT_NAME=chatwoot_production
+
+      - CHAT_URL=http://localhost:15679
 
       - REDIS_URL=localhost:6379
     network_mode: host
