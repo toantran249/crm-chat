@@ -359,7 +359,7 @@ function setup_chatorg() {
   sed -i -e '/POSTGRES_HOST/ s/=.*/=localhost/' docker-compose.yml
   sed -i -e '/POSTGRES_USERNAME/ s/=.*/=chatorg/' docker-compose.yml
   sed -i -e "/POSTGRES_PASSWORD/ s/=.*/=$pg_pass/" docker-compose.yml
-  sed -i -e "/FRONTEND_URL/ s/=.*/=https://$domain_name/" docker-compose.yml
+  sed -i -e "/FRONTEND_URL/ s/=.*/=https:\/\/$domain_name/" docker-compose.yml
 
   sed -i -e "/DB_HOST/ s/=.*/=localhost/" docker-compose.yml
   sed -i -e '/DB_PORT/ s/=.*/=5432/' docker-compose.yml
@@ -373,9 +373,9 @@ function setup_chatorg() {
   sed -i -e "/DB_CHAT_PASSWORD/ s/=.*/=$pg_pass/" docker-compose.yml
   sed -i -e "/DB_CHAT_NAME/ s/=.*/=chat_production/" docker-compose.yml
 
-  sed -i -e "/VITE_APP_URL/ s/=.*/=https://$domain_name/" docker-compose.yml
-  sed -i -e "/VITE_APP_CHAT_URL/ s/=.*/=https://$domain_name/" docker-compose.yml
-  sed -i -e "/VITE_CHAT_WEBSOCKET_URL/ s/=.*/=wss://$domain_name/" docker-compose.yml
+  sed -i -e "/VITE_APP_URL/ s/=.*/=https:\/\/$domain_name/" docker-compose.yml
+  sed -i -e "/VITE_APP_CHAT_URL/ s/=.*/=https:\/\/$domain_name/" docker-compose.yml
+  sed -i -e "/VITE_CHAT_WEBSOCKET_URL/ s/=.*/=wss:\/\/$domain_name/" docker-compose.yml
 
   docker login $REGISTRY_URL -u $USERNAME -p $PASSWORD
   docker pull toantran249/chat-org:latest
