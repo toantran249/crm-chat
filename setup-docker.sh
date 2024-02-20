@@ -397,6 +397,8 @@ function setup_chatorg() {
   docker logout $REGISTRY_URL
   docker compose -f docker-compose.yml up -d sidekiq
   docker compose -f docker-compose.yml up -d rails
+  docker compose -f docker-compose.yml up -d crm-be
+  docker compose -f docker-compose.yml up -d crm-fe
 }
 
 ##############################################################################
