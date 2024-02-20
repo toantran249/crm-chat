@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Description: Install and manage a Chatwoot installation.
+# Description: Install and manage a ChatORG installation.
 # OS: Ubuntu 20.04 LTS
 # Script Version: 2.2.0
 # Run this script as root
@@ -129,7 +129,7 @@ trap exit_handler EXIT
 ##############################################################################
 function exit_handler() {
   if [ "$?" -ne 0 ] && [ "$u" == "n" ]; then
-   echo -en "\nSome error has occured. Check '/var/log/chatwoot-setup.log' for details.\n"
+   echo -en "\nSome error has occured. Check '/var/log/chatorg-setup.log' for details.\n"
    exit 1
   fi
 }
@@ -145,12 +145,12 @@ function exit_handler() {
 #   None
 ##############################################################################
 function get_domain_info() {
-  read -rp 'Enter the domain/subdomain for Chatwoot (e.g., chatwoot.domain.com): ' domain_name
+  read -rp 'Enter the domain/subdomain for ChatORG (e.g., chatorg.domain.com): ' domain_name
   read -rp 'Enter an email address for LetsEncrypt to send reminders when your SSL certificate is up for renewal: ' le_email
   cat << EOF
 
 This script will generate SSL certificates via LetsEncrypt and
-serve Chatwoot at https://$domain_name.
+serve ChatORG at https://$domain_name.
 Proceed further once you have pointed your DNS to the IP of the instance.
 
 EOF
@@ -239,7 +239,7 @@ function install_webserver() {
 }
 
 ##############################################################################
-# Create chatwoot linux user
+# Create chatorg linux user
 # Globals:
 #   None
 # Arguments:
@@ -248,8 +248,8 @@ function install_webserver() {
 #   None
 ##############################################################################
 function create_cw_user() {
-  if ! id -u "chatwoot"; then
-    adduser --disabled-login --gecos "" chatwoot
+  if ! id -u "chatorg"; then
+    adduser --disabled-login --gecos "" chatorg
   fi
 }
 
@@ -268,7 +268,7 @@ function configure_rvm() {
   gpg --keyserver hkp://keyserver.ubuntu.com --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 7D2BAF1CF37B13E2069D6956105BD0E739499BDB
   gpg2 --keyserver hkp://keyserver.ubuntu.com --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 7D2BAF1CF37B13E2069D6956105BD0E739499BDB
   curl -sSL https://get.rvm.io | bash -s stable
-  adduser chatwoot rvm
+  adduser chatorg rvm
 }
 
 ##############################################################################
@@ -281,12 +281,20 @@ function configure_rvm() {
 #   None
 ##############################################################################
 function save_pgpass() {
-  mkdir -p /opt/chatwoot/config
-  file="/opt/chatwoot/config/.pg_pass"
+  mkdir -p /opt/chatorg/config
+  file="/opt/chatorg/config/.pg_pass"
   if ! test -f "$file"; then
-    echo $pg_pass > /opt/chatwoot/config/.pg_pass
+    echo $pg_pass > /opt/chatorg/config/.pg_pass
   fi
 }
+
+# function save_pgpass_for_crm() {
+#   mkdir -p /opt/crmorg/config
+#   file="/opt/crmorg/config/.pg_pass"
+#   if ! test -f "$file"; then
+#     echo $pg_pass > /opt/crmorg/config/.pg_pass
+#   fi
+# }
 
 ##############################################################################
 # Get the pgpass used to setup postgres if installation fails midway
@@ -299,15 +307,22 @@ function save_pgpass() {
 #   None
 ##############################################################################
 function get_pgpass() {
-  file="/opt/chatwoot/config/.pg_pass"
+  file="/opt/chatorg/config/.pg_pass"
   if test -f "$file"; then
     pg_pass=$(cat $file)
   fi
 
 }
+# function get_pgpass_for_crm() {
+#   file="/opt/crmorg/config/.pg_pass"
+#   if test -f "$file"; then
+#     pg_pass=$(cat $file)
+#   fi
+
+# }
 
 ##############################################################################
-# Configure postgres to create chatwoot db user.
+# Configure postgres to create chatorg db user.
 # Enable postgres and redis systemd services.
 # Globals:
 #   None
@@ -319,11 +334,13 @@ function get_pgpass() {
 function configure_db() {
   save_pgpass
   get_pgpass
+  
   sudo -i -u postgres psql << EOF
     \set pass `echo $pg_pass`
-    CREATE USER chatwoot CREATEDB;
-    ALTER USER chatwoot PASSWORD :'pass';
-    ALTER ROLE chatwoot SUPERUSER;
+    CREATE USER chatorg CREATEDB;
+    ALTER USER chatorg PASSWORD :'pass';
+    ALTER ROLE chatorg SUPERUSER;
+    CREATE DATABASE crm_production OWNER chatorg;
     UPDATE pg_database SET datistemplate = FALSE WHERE datname = 'template1';
     DROP DATABASE template1;
     CREATE DATABASE template1 WITH TEMPLATE = template0 ENCODING = 'UNICODE';
@@ -337,7 +354,7 @@ EOF
 }
 
 ##############################################################################
-# Install Chatwoot
+# Install ChatORG
 # This includes setting up ruby, cloning repo and installing dependencies.
 # Globals:
 #   pg_pass
@@ -346,7 +363,7 @@ EOF
 # Outputs:
 #   None
 ##############################################################################
-function setup_chatwoot() {
+function setup_chatorg() {
   local secret=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 63 ; echo '')
   local RAILS_ENV=production
   local REGISTRY_URL="https://index.docker.io/v1/"
@@ -355,8 +372,25 @@ function setup_chatwoot() {
   get_pgpass
 
   sed -i -e '/POSTGRES_HOST/ s/=.*/=localhost/' docker-compose.yml
-  sed -i -e '/POSTGRES_USERNAME/ s/=.*/=chatwoot/' docker-compose.yml
+  sed -i -e '/POSTGRES_USERNAME/ s/=.*/=chatorg/' docker-compose.yml
   sed -i -e "/POSTGRES_PASSWORD/ s/=.*/=$pg_pass/" docker-compose.yml
+  sed -i -e "/FRONTEND_URL/ s/=.*/=https://$domain_name/" docker-compose.yml
+
+  sed -i -e "/DB_HOST/ s/=.*/=localhost/" docker-compose.yml
+  sed -i -e '/DB_PORT/ s/=.*/=5432/' docker-compose.yml
+  sed -i -e '/DB_USER/ s/=.*/=chatorg/' docker-compose.yml
+  sed -i -e "/DB_PASSWORD/ s/=.*/=$pg_pass/" docker-compose.yml
+  sed -i -e '/DB_NAME/ s/=.*/=crm_production/' docker-compose.yml
+
+  sed -i -e '/DB_CHAT_HOST/ s/=.*/=localhost/' docker-compose.yml
+  sed -i -e '/DB_CHAT_PORT/ s/=.*/=5432/' docker-compose.yml
+  sed -i -e '/DB_CHAT_USER/ s/=.*/=chatorg/' docker-compose.yml
+  sed -i -e "/DB_CHAT_PASSWORD/ s/=.*/=$pg_pass/" docker-compose.yml
+  sed -i -e "/DB_CHAT_NAME/ s/=.*/=chat_production/" docker-compose.yml
+
+  sed -i -e "/VITE_APP_URL/ s/=.*/=https://$domain_name/" docker-compose.yml
+  sed -i -e "/VITE_APP_CHAT_URL/ s/=.*/=https://$domain_name/" docker-compose.yml
+  sed -i -e "/VITE_CHAT_WEBSOCKET_URL/ s/=.*/=wss://$domain_name/" docker-compose.yml
 
   docker login $REGISTRY_URL -u $USERNAME -p $PASSWORD
   docker pull toantran249/chat-org:latest
@@ -375,11 +409,11 @@ function setup_chatwoot() {
 #   None
 ##############################################################################
 function run_db_migrations(){
-  docker compose run --rm rails bundle exec rails db:chatwoot_prepare
+  docker compose run --rm rails bundle exec rails db:chatorg_prepare
 }
 
 ##############################################################################
-# Setup Chatwoot systemd services and cwctl CLI
+# Setup ChatORG systemd services and cwctl CLI
 # Globals:
 #   None
 # Arguments:
@@ -388,16 +422,16 @@ function run_db_migrations(){
 #   None
 ##############################################################################
 function configure_systemd_services() {
-  cp /home/chatwoot/chatwoot/deployment/chatwoot-web.1.service /etc/systemd/system/chatwoot-web.1.service
-  cp /home/chatwoot/chatwoot/deployment/chatwoot-worker.1.service /etc/systemd/system/chatwoot-worker.1.service
-  cp /home/chatwoot/chatwoot/deployment/chatwoot.target /etc/systemd/system/chatwoot.target
+  cp /home/chatorg/chatorg/deployment/chatorg-web.1.service /etc/systemd/system/chatorg-web.1.service
+  cp /home/chatorg/chatorg/deployment/chatorg-worker.1.service /etc/systemd/system/chatorg-worker.1.service
+  cp /home/chatorg/chatorg/deployment/chatorg.target /etc/systemd/system/chatorg.target
 
-  cp /home/chatwoot/chatwoot/deployment/chatwoot /etc/sudoers.d/chatwoot
-  cp /home/chatwoot/chatwoot/deployment/setup_20.04.sh /usr/local/bin/cwctl
+  cp /home/chatorg/chatorg/deployment/chatorg /etc/sudoers.d/chatorg
+  cp /home/chatorg/chatorg/deployment/setup_20.04.sh /usr/local/bin/cwctl
   chmod +x /usr/local/bin/cwctl
 
-  systemctl enable chatwoot.target
-  systemctl start chatwoot.target
+  systemctl enable chatorg.target
+  systemctl start chatorg.target
 }
 
 ##############################################################################
@@ -419,14 +453,13 @@ function setup_ssl() {
     echo "debug: letsencrypt email: $le_email"
   fi
   curl https://ssl-config.mozilla.org/ffdhe4096.txt >> /etc/ssl/dhparam
-  wget https://raw.githubusercontent.com/chatwoot/chatwoot/develop/deployment/nginx_chatwoot.conf
-  cp nginx_chatwoot.conf /etc/nginx/sites-available/nginx_chatwoot.conf
+  wget https://raw.githubusercontent.com/toantran249/crm-chat/main/nginx_chatorg.conf
+  cp nginx_chatorg.conf /etc/nginx/sites-available/nginx_chatorg.conf
   certbot certonly --non-interactive --agree-tos --nginx -m "$le_email" -d "$domain_name"
-  sed -i "s/chatwoot.domain.com/$domain_name/g" /etc/nginx/sites-available/nginx_chatwoot.conf
-  ln -s /etc/nginx/sites-available/nginx_chatwoot.conf /etc/nginx/sites-enabled/nginx_chatwoot.conf
+  sed -i "s/chatorg.domain.com/$domain_name/g" /etc/nginx/sites-available/nginx_chatorg.conf
+  ln -s /etc/nginx/sites-available/nginx_chatorg.conf /etc/nginx/sites-enabled/nginx_chatorg.conf
   systemctl restart nginx
-EOF
-  systemctl restart chatwoot.target
+  # systemctl restart chatorg.target
 }
 
 ##############################################################################
@@ -439,25 +472,25 @@ EOF
 #   None
 ##############################################################################
 function setup_logging() {
-  touch /var/log/chatwoot-setup.log
-  LOG_FILE="/var/log/chatwoot-setup.log"
+  touch /var/log/chatorg-setup.log
+  LOG_FILE="/var/log/chatorg-setup.log"
 }
 
 function ssl_success_message() {
     cat << EOF
 
 ***************************************************************************
-Woot! Woot!! Chatwoot server installation is complete.
+Woot! Woot!! ChatORG server installation is complete.
 The server will be accessible at https://$domain_name
 
-Join the community at https://chatwoot.com/community?utm_source=cwctl
+Join the community at https://chatorg.com/community?utm_source=cwctl
 ***************************************************************************
 
 EOF
 }
 
 function cwctl_message() {
-  echo $'\U0001F680 Try out the all new Chatwoot CLI tool to manage your installation.'
+  echo $'\U0001F680 Try out the all new ChatORG CLI tool to manage your installation.'
   echo $'\U0001F680 Type "cwctl --help" to learn more.'
 }
 
@@ -472,7 +505,7 @@ function cwctl_message() {
 #   None
 ##############################################################################
 function get_cw_version() {
-  CW_VERSION=$(curl -s https://app.chatwoot.com/api | python3 -c 'import sys,json;data=json.loads(sys.stdin.read()); print(data["version"])')
+  CW_VERSION=$(curl -s https://app.chatorg.com/api | python3 -c 'import sys,json;data=json.loads(sys.stdin.read()); print(data["version"])')
 }
 
 ##############################################################################
@@ -490,16 +523,16 @@ function install() {
   cat << EOF
 
 ***************************************************************************
-              Chatwoot Installation (v$CW_VERSION)
+              ChatORG Installation (v$CW_VERSION)
 ***************************************************************************
 
 For more verbose logs, open up a second terminal and follow along using,
-'tail -f /var/log/chatwoot-setup.log'.
+'tail -f /var/log/chatorg-setup.log'.
 
 EOF
 
   sleep 3
-  read -rp 'Would you like to configure a domain and SSL for Chatwoot?(yes or no): ' configure_webserver
+  read -rp 'Would you like to configure a domain and SSL for ChatORG?(yes or no): ' configure_webserver
 
   if [ "$configure_webserver" == "yes" ]; then
     get_domain_info
@@ -535,8 +568,8 @@ EOF
     echo "➥ 5/9 Skipping database setup."
   fi
 
-  echo "➥ 6/9 Installing Chatwoot. This takes a long while."
-  setup_chatwoot &>> "${LOG_FILE}"
+  echo "➥ 6/9 Installing ChatORG. This takes a long while."
+  setup_chatorg &>> "${LOG_FILE}"
 
   if [ "$install_pg_redis" != "no" ]; then
     echo "➥ 7/9 Running database migrations."
@@ -556,13 +589,13 @@ EOF
 ➥ 9/9 Skipping SSL/TLS setup.
 
 ***************************************************************************
-Woot! Woot!! Chatwoot server installation is complete.
+Woot! Woot!! ChatORG server installation is complete.
 The server will be accessible at http://$public_ip:3000
 
 To configure a domain and SSL certificate, follow the guide at
-https://www.chatwoot.com/docs/deployment/deploy-chatwoot-in-linux-vm?utm_source=cwctl
+https://www.chatorg.com/docs/deployment/deploy-chatorg-in-linux-vm?utm_source=cwctl
 
-Join the community at https://chatwoot.com/community?utm_source=cwctl
+Join the community at https://chatorg.com/community?utm_source=cwctl
 ***************************************************************************
 
 EOF
@@ -583,7 +616,7 @@ The database migrations had not run as Postgres and Redis were not installed
 as part of the installation process. After modifying the environment
 variables (in the .env file) with your external database credentials, run
 the database migrations using the below command.
-'RAILS_ENV=production bundle exec rails db:chatwoot_prepare'.
+'RAILS_ENV=production bundle exec rails db:chatorg_prepare'.
 ***************************************************************************
 
 EOF
@@ -604,7 +637,7 @@ exit 0
 #   None
 ##############################################################################
 function get_console() {
-  sudo -i -u chatwoot bash -c " cd chatwoot && RAILS_ENV=production bundle exec rails c"
+  sudo -i -u chatorg bash -c " cd chatorg && RAILS_ENV=production bundle exec rails c"
 }
 
 ##############################################################################
@@ -620,7 +653,7 @@ function help() {
 
   cat <<EOF
 Usage: cwctl [OPTION]...
-Install and manage your Chatwoot installation.
+Install and manage your ChatORG installation.
 
 Example: cwctl -i master
 Example: cwctl -l web
@@ -629,16 +662,16 @@ Example: cwctl --upgrade
 Example: cwctl -c
 
 Installation/Upgrade:
-  -i, --install             Install the latest stable version of Chatwoot
-  -I                        Install Chatwoot from a git branch
-  -u, --upgrade             Upgrade Chatwoot to the latest stable version
+  -i, --install             Install the latest stable version of ChatORG
+  -I                        Install ChatORG from a git branch
+  -u, --upgrade             Upgrade ChatORG to the latest stable version
   -s, --ssl                 Fetch and install SSL certificates using LetsEncrypt
   -w, --webserver           Install and configure Nginx webserver with SSL
 
 Management:
   -c, --console             Open ruby console
-  -l, --logs                View logs from Chatwoot. Supported values include web/worker.
-  -r, --restart             Restart Chatwoot server
+  -l, --logs                View logs from ChatORG. Supported values include web/worker.
+  -r, --restart             Restart ChatORG server
   
 Miscellaneous:
   -d, --debug               Show debug messages
@@ -648,14 +681,14 @@ Miscellaneous:
 Exit status:
 Returns 0 if successful; non-zero otherwise.
 
-Report bugs at https://github.com/chatwoot/chatwoot/issues
-Get help, https://chatwoot.com/community?utm_source=cwctl
+Report bugs at https://github.com/chatorg/chatorg/issues
+Get help, https://chatorg.com/community?utm_source=cwctl
 
 EOF
 }
 
 ##############################################################################
-# Get Chatwoot web/worker logs (-l/--logs)
+# Get ChatORG web/worker logs (-l/--logs)
 # Globals:
 #   None
 # Arguments:
@@ -665,10 +698,10 @@ EOF
 ##############################################################################
 function get_logs() {
   if [ "$SERVICE" == "worker" ]; then
-    journalctl -u chatwoot-worker.1.service -f
+    journalctl -u chatorg-worker.1.service -f
   fi
   if [ "$SERVICE" == "web" ]; then
-    journalctl -u chatwoot-web.1.service -f
+    journalctl -u chatorg-web.1.service -f
   fi
 }
 
@@ -705,8 +738,8 @@ function ssl() {
 #   None
 ##############################################################################
 function upgrade_prereq() {
-  sudo -i -u chatwoot << "EOF"
-  cd chatwoot
+  sudo -i -u chatorg << "EOF"
+  cd chatorg
   git update-index --refresh
   git diff-index --quiet HEAD --
   if [ "$?" -eq 1 ]; then
@@ -728,13 +761,13 @@ EOF
 ##############################################################################
 function upgrade() {
   get_cw_version
-  echo "Upgrading Chatwoot to v$CW_VERSION"
+  echo "Upgrading ChatORG to v$CW_VERSION"
   sleep 3
   upgrade_prereq
-  sudo -i -u chatwoot << "EOF"
+  sudo -i -u chatorg << "EOF"
 
-  # Navigate to the Chatwoot directory
-  cd chatwoot
+  # Navigate to the ChatORG directory
+  cd chatorg
 
   # Pull the latest version of the master branch
   git checkout master && git pull
@@ -758,22 +791,22 @@ function upgrade() {
 EOF
 
   # Copy the updated targets
-  cp /home/chatwoot/chatwoot/deployment/chatwoot-web.1.service /etc/systemd/system/chatwoot-web.1.service
-  cp /home/chatwoot/chatwoot/deployment/chatwoot-worker.1.service /etc/systemd/system/chatwoot-worker.1.service
-  cp /home/chatwoot/chatwoot/deployment/chatwoot.target /etc/systemd/system/chatwoot.target
+  cp /home/chatorg/chatorg/deployment/chatorg-web.1.service /etc/systemd/system/chatorg-web.1.service
+  cp /home/chatorg/chatorg/deployment/chatorg-worker.1.service /etc/systemd/system/chatorg-worker.1.service
+  cp /home/chatorg/chatorg/deployment/chatorg.target /etc/systemd/system/chatorg.target
 
-  cp /home/chatwoot/chatwoot/deployment/chatwoot /etc/sudoers.d/chatwoot
+  cp /home/chatorg/chatorg/deployment/chatorg /etc/sudoers.d/chatorg
   # TODO:(@vn) handle cwctl updates
 
   systemctl daemon-reload
 
-  # Restart the chatwoot server
-  systemctl restart chatwoot.target
+  # Restart the chatorg server
+  systemctl restart chatorg.target
 
 }
 
 ##############################################################################
-# Restart Chatwoot server (-r/--restart)
+# Restart ChatORG server (-r/--restart)
 # Globals:
 #   None
 # Arguments:
@@ -782,8 +815,8 @@ EOF
 #   None
 ##############################################################################
 function restart() {
-  systemctl restart chatwoot.target
-  systemctl status chatwoot.target
+  systemctl restart chatorg.target
+  systemctl status chatorg.target
 }
 
 ##############################################################################
