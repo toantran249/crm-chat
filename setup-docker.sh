@@ -383,7 +383,7 @@ function setup_chatorg() {
   docker pull toantran249/crm-fe-org:latest
   docker logout $REGISTRY_URL
 
-  docker compose -f docker-compose.yml run --rm crm-be /bin/bash -c "go run main.go -db true"
+  docker compose -f docker-compose.yml run --rm crm-be /bin/bash -c "./crm-chat-pdt-backend -db true"
 
   docker compose -f docker-compose.yml up -d sidekiq
   docker compose -f docker-compose.yml up -d rails
