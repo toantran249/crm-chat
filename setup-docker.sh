@@ -394,6 +394,8 @@ function setup_chatorg() {
 
   docker login $REGISTRY_URL -u $USERNAME -p $PASSWORD
   docker pull toantran249/chat-org:latest
+  docker pull toantran249/crm-be-org:latest
+  docker pull toantran249/crm-fe-org:latest
   docker logout $REGISTRY_URL
   docker compose -f docker-compose.yml up -d sidekiq
   docker compose -f docker-compose.yml up -d rails
