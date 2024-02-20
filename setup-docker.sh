@@ -353,7 +353,7 @@ function setup_chatorg() {
   local RAILS_ENV=production
   local REGISTRY_URL="https://index.docker.io/v1/"
   local USERNAME="toantran2409@gmail.com"
-  local PASSWORD="1jahdi@#jdskljk33A"
+  local PASSWORD=xxxxxxxxx
   get_pgpass
 
   sed -i -e '/POSTGRES_HOST/ s/=.*/=localhost/' docker-compose.yml
