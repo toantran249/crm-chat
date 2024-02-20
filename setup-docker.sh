@@ -373,7 +373,7 @@ function setup_chatorg() {
   sed -i -e "/DB_CHAT_PASSWORD/ s/=.*/=$pg_pass/" docker-compose.yml
   sed -i -e "/DB_CHAT_NAME/ s/=.*/=chat_production/" docker-compose.yml
 
-  sed -i -e "/CHAT_URL/ s/=.*/=http:\/\/localhost:15679/" docker-compose.yml
+  sed -i -e "/CHAT_URL/ s/=.*/=http:\/\/localhost:3000/" docker-compose.yml
 
   sed -i -e "/VITE_APP_URL/ s/=.*/=https:\/\/$domain_name/" docker-compose.yml
   sed -i -e "/VITE_APP_CHAT_URL/ s/=.*/=https:\/\/$domain_name/" docker-compose.yml
