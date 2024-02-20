@@ -288,14 +288,6 @@ function save_pgpass() {
   fi
 }
 
-# function save_pgpass_for_crm() {
-#   mkdir -p /opt/crmorg/config
-#   file="/opt/crmorg/config/.pg_pass"
-#   if ! test -f "$file"; then
-#     echo $pg_pass > /opt/crmorg/config/.pg_pass
-#   fi
-# }
-
 ##############################################################################
 # Get the pgpass used to setup postgres if installation fails midway
 # and needs to be re-run
@@ -313,13 +305,6 @@ function get_pgpass() {
   fi
 
 }
-# function get_pgpass_for_crm() {
-#   file="/opt/crmorg/config/.pg_pass"
-#   if test -f "$file"; then
-#     pg_pass=$(cat $file)
-#   fi
-
-# }
 
 ##############################################################################
 # Configure postgres to create chatorg db user.
@@ -413,7 +398,7 @@ function setup_chatorg() {
 #   None
 ##############################################################################
 function run_db_migrations(){
-  docker compose run --rm rails bundle exec rails db:chatorg_prepare
+  docker compose run --rm rails bundle exec rails db:chatwoot_prepare
 }
 
 ##############################################################################
@@ -509,7 +494,7 @@ function cwctl_message() {
 #   None
 ##############################################################################
 function get_cw_version() {
-  CW_VERSION=$(curl -s https://app.chatorg.com/api | python3 -c 'import sys,json;data=json.loads(sys.stdin.read()); print(data["version"])')
+  CW_VERSION='1.0.0'
 }
 
 ##############################################################################
