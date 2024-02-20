@@ -69,7 +69,7 @@ services:
       - DB_CHAT_PASSWORD='W1V4HOnvYBgytXO'
       - DB_CHAT_NAME=chatwoot_production
 
-      - CHAT_URL=http://localhost:15679
+      - CHAT_URL=http://localhost:3000
 
       - REDIS_URL=localhost:6379
     network_mode: host
