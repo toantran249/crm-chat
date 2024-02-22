@@ -120,6 +120,10 @@ services:
       - RAILS_ENV=production
       - REDIS_URL=redis://localhost:6379
       - RACK_TIMEOUT_SERVICE_TIMEOUT=0
+      - POSTGRES_HOST=localhost
+      - POSTGRES_DATABASE=chat_production
+      - POSTGRES_USERNAME=chatorg
+      - POSTGRES_PASSWORD=
     # networks:
     #   - api-net-prod
     network_mode: host
